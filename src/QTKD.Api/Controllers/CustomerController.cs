@@ -14,10 +14,7 @@ namespace QTKD.Api.Controllers
         {
             _customerRepository = customerRepository;
         }
-
-        /// <summary>
-        /// GET /api/customers - Lấy danh sách khách hàng từ PostgreSQL (Mục tiêu Tuần 05)
-        /// </summary>
+        
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
