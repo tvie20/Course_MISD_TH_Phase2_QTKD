@@ -1,0 +1,49 @@
+## .NET / C# Build & Compiler Artifacts
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio / Rider / Omnisharp cache
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.sln.docstates
+
+## Secrets & Database Passwords (Bảo mật)
+## (Không đưa mật khẩu database lên Git theo yêu cầu PDF)
+appsettings.Production.json
+appsettings.*.local.json
+appsettings.local.json
+*.secrets.json
+.env
+.env.*
+
+## Testing & Code Coverage
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+## Operating System Hidden Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## Package Manager & Crash Dumps
+*.nupkg
+*.snupkg
+*.dmp
+*.mdmp
+
