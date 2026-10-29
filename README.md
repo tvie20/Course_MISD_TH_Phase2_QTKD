@@ -1,5 +1,5 @@
-# HƯỚNG DẪN THỰC HÀNH TUẦN 05 — HỆ THỐNG QTKD
-> **Học phần:** Phát triển ứng dụng Hệ thống Thông tin Hiện đại  
+# THỰC HÀNH TUẦN 05 — HỆ THỐNG QTKD
+> **Học phần:** Phát triển ứng dụng hệ thống thông tin hiện đại  
 > **Phase 2:** Xây dựng hệ thống QTKD
 > **Công nghệ:** C# · ASP.NET Core Web API (.NET 10/8) · Entity Framework Core · PostgreSQL  
 
@@ -237,3 +237,58 @@ SELECT * FROM "PriceItems";
 
 3. **Lỗi: `PendingModelChangesWarning`**:
    - Trong EF Core 9/.NET 10, dự án đã được cấu hình tự động bỏ qua cảnh báo này và đồng bộ mô hình trong `QtkdDbContext.cs`, đảm bảo lệnh `dotnet ef database update` luôn chạy thành công.
+
+---
+
+## 7. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
+
+```text
+QTKD/
+├── .gitignore
+├── README.md                           # Hướng dẫn cài đặt, khởi chạy, kiểm thử và cấu trúc solution
+├── docs/                               # Chứa tài liệu thiết kế, sơ đồ kiến trúc, minh chứng kiểm thử
+├── tests/                              # Thư mục chứa project kiểm thử xUnit (triển khai ở Tuần 07)
+│
+└── src/
+    └── QTKD.Api/                       # Project ASP.NET Core Web API chính
+        ├── Controllers/                # Tầng Controller tiếp nhận HTTP Request & trả HTTP Status Codes
+        │   ├── ContractController.cs   # API Hợp đồng (GET, PUT, Submit)
+        │   └── CustomerController.cs   # API Khách hàng (GET danh sách)
+        │
+        ├── Data/                       # Tầng truy xuất dữ liệu & ORM
+        │   └── QTKDDbContext.cs        # DbContext cấu hình quan hệ 1-N và nạp Seed Data vào PostgreSQL
+        │
+        ├── DTOs/                       # Data Transfer Objects tách biệt thực thể DB với dữ liệu API
+        │   ├── ContractDtos.cs         # Request & Response DTOs của Hợp đồng
+        │   └── CustomerDtos.cs         # Request & Response DTOs của Khách hàng
+        │
+        ├── Middleware/                 # Pipeline xử lý trung gian
+        │   └── GlobalExceptionMiddleware.cs  # Bắt ngoại lệ tập trung
+        │
+        ├── Migrations/                 # Lịch sử EF Core Code-First Migrations
+        │   ├── 20261028092934_InitialCreate.cs
+        │   ├── 20261028092934_InitialCreate.Designer.cs
+        │   └── QtkdDbContextModelSnapshot.cs
+        │
+        ├── Models/                     # Tầng thực thể nghiệp vụ (Domain Entities & Enums)
+        │   ├── Customer.cs             # Thực thể Khách hàng
+        │   ├── CustomerStatus.cs       # Enum trạng thái Khách hàng (Inactive = 0, Active = 1)
+        │   ├── Contract.cs             # Thực thể Hợp đồng
+        │   ├── ContractStatus.cs       # Enum trạng thái Hợp đồng (Draft = 0, PendingApproval = 1, ...)
+        │   ├── PriceList.cs            # Thực thể Bảng giá
+        │   └── PriceItem.cs            # Thực thể Chi tiết đơn giá dịch vụ
+        │
+        ├── Repositories/               # Tầng trừu tượng hóa truy cập CSDL (Repository Pattern)
+        │   ├── ICustomerRepository.cs  & CustomerRepository.cs
+        │   ├── IContractRepository.cs  & ContractRepository.cs (kèm .Include(c => c.Customer))
+        │   └── IPriceListRepository.cs & PriceListRepository.cs
+        │
+        ├── Properties/
+        │   └── launchSettings.json     # Cấu hình cổng chạy ứng dụng (HTTP 5174, HTTPS 7015)
+        │
+        ├── appsettings.json            # Chuỗi kết nối PostgreSQL (không lưu mật khẩu thật)
+        ├── appsettings.Development.json
+        ├── Program.cs                  # Điểm khởi đầu ứng dụng, cấu hình DI, Swagger và Middleware
+        ├── QTKD.Api.csproj             # File cấu hình project và các NuGet dependencies
+        └── QTKD.Api.http               # File kịch bản gọi API nhanh trong VS Code / Visual Studio
+```
