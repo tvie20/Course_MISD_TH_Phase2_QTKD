@@ -20,9 +20,29 @@ namespace QTKD.Api.Repositories
 
         public async Task<PriceList?> GetByIdWithItemsAsync(int id)
         {
+            // Dùng .Include(p => p.PriceItems) để nạp các dòng dịch vụ chi tiết của bảng giá
             return await _context.PriceLists
                 .Include(p => p.PriceItems)
                 .FirstOrDefaultAsync(p => p.Id == id);
+        }
+
+        public async Task<PriceList> AddAsync(PriceList priceList)
+        {
+            _context.PriceLists.Add(priceList);
+            await _context.SaveChangesAsync();
+            return priceList;
+        }
+
+        public async Task<PriceItem> AddItemAsync(PriceItem item)
+        {
+            _context.PriceItems.Add(item);
+            await _context.SaveChangesAsync();
+            return item;
+        }
+
+        public async Task<bool> ExistsAsync(int id)
+        {
+            return await _context.PriceLists.AnyAsync(p => p.Id == id);
         }
     }
 }

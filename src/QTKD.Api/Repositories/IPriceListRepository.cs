@@ -6,5 +6,8 @@ namespace QTKD.Api.Repositories
     {
         Task<IEnumerable<PriceList>> GetAllAsync();
         Task<PriceList?> GetByIdWithItemsAsync(int id);
+        Task<PriceList> AddAsync(PriceList priceList);
+        Task<PriceItem> AddItemAsync(PriceItem item);
+        Task<bool> ExistsAsync(int id);
     }
 }
