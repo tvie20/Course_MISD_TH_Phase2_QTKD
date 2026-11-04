@@ -1,7 +1,6 @@
-# THỰC HÀNH TUẦN 05 — HỆ THỐNG QTKD
+# XÂY DỰNG HỆ THỐNG QTKD
 > **Học phần:** Phát triển ứng dụng hệ thống thông tin hiện đại  
-> **Phase 2:** Xây dựng hệ thống QTKD
-> **Công nghệ:** C# · ASP.NET Core Web API (.NET 10/8) · Entity Framework Core · PostgreSQL  
+> **Công nghệ:** C# · ASP.NET Core Web API (.NET 10/8) · Entity Framework Core · PostgreSQL
 
 ---
 
@@ -16,8 +15,25 @@
 
 ---
 
-## 2. YÊU CẦU MÔI TRƯỜNG TRƯỚC KHI CHẠY (PREREQUISITES)
-Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đặt:
+## 2. MỤC TIÊU TUẦN 06
+- Lập trình các API tạo, sửa và xử lý hợp đồng, kiểm tra chặt chẽ các quy tắc nghiệp vụ trước khi lưu (không chỉ làm CRUD đơn thuần).
+- **Quản lý Khách hàng (Customer):** Tạo mới, xem danh sách/chi tiết, cập nhật; kiểm tra tính hợp lệ và chống trùng lặp mã khách hàng.
+- **Quản lý Hợp đồng (Contract) & Hoàn thiện US03 (Gửi hợp đồng trình duyệt):**
+  - Xây dựng endpoint `POST /api/contracts/{id}/submit` xử lý gửi trình duyệt.
+  - Thực thi quy tắc **CTR-01:** Chỉ cho phép chỉnh sửa hợp đồng khi đang ở trạng thái `Draft` hoặc `RevisionRequested`; chặn sửa khi ở `PendingApproval`/`Approved`.
+  - Thực thi quy tắc **CTR-02:** Chỉ cho gửi duyệt khi Khách hàng tồn tại & `Active`, ngày hiệu lực hợp lệ (`StartDate <= EndDate`), và có đầy đủ tệp tài liệu đính kèm bản thảo bắt buộc. Thiếu một điều kiện thì từ chối và dữ liệu giữ nguyên.
+  - Thực thi quy tắc **CTR-03:** Không được chuyển `Draft` thẳng sang `Approved`. Submit thành công chỉ chuyển sang trạng thái `PendingApproval`.
+  - **Chống gửi lặp (Idempotency):** Từ chối gửi duyệt nhiều lần đối với hợp đồng đang ở `PendingApproval`.
+- **Quản lý Bảng giá (Pricing):** Tạo và xem PriceList; thêm và xem PriceItem; kiểm tra đơn giá dịch vụ hợp lệ (`UnitPrice > 0`) và liên kết PriceItem–PriceList chính xác.
+- **Tuân thủ chuẩn kiến trúc phân tầng:** 
+  - `Controller` (0 DbContext, 0 Repository, 0 try/catch) $\rightarrow$ `Service` (xử lý nghiệp vụ & ném Exception) $\rightarrow$ `Repository` (đóng gói data access) qua Dependency Injection.
+  - Dùng DTOs độc lập cho Request/Response thay vì để API phụ thuộc vào Entity CSDL.
+  - Xử lý ngoại lệ tập trung qua `GlobalExceptionMiddleware` (400 cho lỗi nghiệp vụ, 404 cho NotFound).
+
+---
+
+## 3. YÊU CẦU MÔI TRƯỜNG TRƯỚC KHI CHẠY (PREREQUISITES)
+Trước khi bắt đầu, hãy đảm bảo máy tính đã cài đặt:
 1. **.NET SDK**: Phiên bản .NET 10.0 (hoặc .NET 8.0/9.0 tương thích).  
    *Kiểm tra:* `dotnet --version`
 2. **PostgreSQL**: Phiên bản 14 trở lên đang chạy service trên máy (Port mặc định: `5432`).  
@@ -30,7 +46,7 @@ Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã cài đ
 
 ---
 
-## 3. CÁC BƯỚC CÀI ĐẶT VÀ KHỞI ĐỘNG DỰ ÁN
+## 4. CÁC BƯỚC CÀI ĐẶT VÀ KHỞI ĐỘNG DỰ ÁN
 
 ### Bước 1: Mở Terminal tại thư mục project
 Mở Terminal/PowerShell và điều hướng tới thư mục chứa project Web API:
@@ -107,101 +123,40 @@ Mở trình duyệt truy cập vào giao diện **Swagger UI**:
 
 ---
 
-## 4. HƯỚNG DẪN THỰC THI 2 ENDPOINTS TRÊN GIAO DIỆN SWAGGER UI
+## 5. HƯỚNG DẪN THỰC THI ENDPOINTS TRÊN GIAO DIỆN SWAGGER UI
 
-Trên giao diện Swagger UI, bạn sẽ thấy 2 nhóm API: **Customer** và **Contract**. Hãy thực hiện các bước sau để kiểm thử:
-
----
-
-### 4.1. Endpoint 1: Lấy danh sách khách hàng (`GET /api/customers`)
-
-- **Bước 1: Mở rộng endpoint**  
-  Tìm nhóm **Customer**, nhấp chuột vào thanh màu xanh lá mang tên **`GET /api/customers`** để mở rộng khung thao tác.
-
-- **Bước 2: Bật chế độ thử nghiệm**  
-  Nhấp vào nút **`Try it out`** nằm ở góc trên bên phải của khung.
-
-- **Bước 3: Thực thi**  
-  Nhấp vào nút màu xanh dương **`Execute`** (endpoint này đọc toàn bộ danh sách nên không cần điền tham số).
-
-- **Bước 4: Kiểm tra kết quả phản hồi**  
-  Cuộn xuống phần **Responses** ngay bên dưới, quan sát mục **Server response**:
-  - **Code:** `200` (Thành công).
-  - **Response body:** Hiển thị danh sách khách hàng dạng JSON được truy vấn trực tiếp từ bảng `Customers` trong PostgreSQL:
-    ```json
-    [
-      {
-        "id": 1,
-        "code": "KH00001",
-        "name": "Công ty TNHH Minh Phát",
-        "status": 1,
-        "statusName": "Active",
-        "taxCode": "0912345678",
-        "address": "123 Lê Lợi, Quận 1, TP.HCM"
-      },
-      {
-        "id": 2,
-        "code": "KH00002",
-        "name": "Công ty Cổ phần An Khang",
-        "status": 0,
-        "statusName": "Inactive",
-        "taxCode": "0738297382",
-        "address": "456 Nguyễn Trãi, Quận 5, TP.HCM"
-      }
-    ]
-    ```
+Trên giao diện Swagger UI có 3 nhóm API hoàn chỉnh: **Customer**, **Contract** và **Pricing**.
 
 ---
 
-### 4.2. Endpoint 2: Xem chi tiết hợp đồng theo ID (`GET /api/contracts/{id}`)
-
-#### Trường hợp A: Hợp đồng hợp lệ có trong database (ID = 1)
-- **Bước 1: Mở rộng endpoint**  
-  Tìm nhóm **Contract**, nhấp chuột vào thanh màu xanh lá **`GET /api/contracts/{id}`**.
-
-- **Bước 2: Bật chế độ thử nghiệm**  
-  Nhấp vào nút **`Try it out`** ở góc trên bên phải.
-
-- **Bước 3: Nhập ID cần tra cứu**  
-  Tại ô nhập liệu của tham số **`id * integer ($int32)`**, nhập giá trị: **`1`**.
-
-- **Bước 4: Thực thi**  
-  Nhấp nút **`Execute`**.
-
-- **Bước 5: Kiểm tra kết quả phản hồi**  
-  - **Code:** `200`
-  - **Response body:** Trả về chi tiết hợp đồng mẫu `HD-2026-018` đang ở trạng thái `Draft` (status = 0) liên kết với Công ty Minh Phát:
-    ```json
-    {
-      "id": 1,
-      "contractNo": "HD-2026-018",
-      "customerId": 1,
-      "customerName": "Công ty TNHH Minh Phát",
-      "startDate": "2026-11-01T00:00:00Z",
-      "endDate": "2027-10-31T00:00:00Z",
-      "status": 0,
-      "statusName": "Draft",
-      "totalAmount": 45000000.00,
-      "attachmentPath": "/attachments/hd-2026-018-draft.pdf",
-      "description": "Hợp đồng cung cấp dịch vụ CNTT cho Công ty Minh Phát"
-    }
-    ```
-
-#### Trường hợp B: Hợp đồng không tồn tại (ID = 999)
-- **Bước 1:** Vẫn tại ô nhập **`id`**, xóa số 1 và nhập số **`999`**.
-- **Bước 2:** Nhấp nút **`Execute`**.
-- **Bước 3: Kiểm tra kết quả phản hồi**  
-  - **Code:** `404` (Not Found).
-  - **Response body:**
-    ```json
-    {
-      "error": "Không tìm thấy hợp đồng 999."
-    }
-    ```
+### 5.1. Nhóm Customer: Đọc danh sách (`GET /api/customers`)
+- Mở rộng endpoint **`GET /api/customers`** $\rightarrow$ Nhấp **`Try it out`** $\rightarrow$ Nhấp **`Execute`**.
+- Quan sát **Code: 200** và danh sách khách hàng JSON đọc trực tiếp từ PostgreSQL.
 
 ---
 
-## 5. ĐỐI CHIẾU DỮ LIỆU VỚI POSTGRESQL
+### 5.2. Nhóm Contract: Xem chi tiết theo ID (`GET /api/contracts/{id}`)
+- Mở rộng endpoint **`GET /api/contracts/{id}`** $\rightarrow$ Nhấp **`Try it out`**.
+- Nhập `id = 1` $\rightarrow$ Nhấp **`Execute`** $\rightarrow$ Nhận **Code: 200** với hợp đồng `HD-2026-018` ở trạng thái `Draft`.
+- Thử nhập `id = 999` $\rightarrow$ Nhấp **`Execute`** $\rightarrow$ Nhận **Code: 404 Not Found** ("Không tìm thấy hợp đồng với Id = 999.").
+
+---
+
+### 5.3. Nhóm Contract: Gửi trình duyệt US03 (`POST /api/contracts/{id}/submit`)
+- Mở rộng endpoint **`POST /api/contracts/{id}/submit`** $\rightarrow$ Nhấp **`Try it out`**.
+- Nhập `id = 1` $\rightarrow$ Nhấp **`Execute`**.
+- Hệ thống thẩm định quy tắc **CTR-02** và chuyển trạng thái sang **PendingApproval** (thỏa mãn quy tắc **CTR-03**).
+- Thử submit lần 2 $\rightarrow$ Nhận **Code: 400 Bad Request** ("Hợp đồng này đã được gửi trình duyệt trước đó...").
+
+---
+
+### 5.4. Nhóm Pricing: Quản lý bảng giá & dịch vụ
+- `GET /api/pricelists/{id}`: Xem chi tiết bảng giá kèm danh sách mặt hàng (`PriceItems`).
+- `POST /api/pricelists/{id}/items`: Thêm mặt hàng dịch vụ (kiểm tra chặn lỗi nếu đơn giá $\le 0$).
+
+---
+
+## 6. ĐỐI CHIẾU DỮ LIỆU VỚI POSTGRESQL
 
 Mở **pgAdmin** hoặc công cụ quản lý database, kết nối vào database `QTKDDb` và mở **Query Tool** để chạy các câu lệnh SQL đối chiếu với kết quả trả về trên Swagger:
 
@@ -221,7 +176,7 @@ SELECT * FROM "PriceItems";
 
 ---
 
-## 6. XỬ LÝ SỰ CỐ THƯỜNG GẶP (TROUBLESHOOTING)
+## 7. XỬ LÝ SỰ CỐ THƯỜNG GẶP (TROUBLESHOOTING)
 
 1. **Lỗi: `Failed to connect to 127.0.0.1:5432`**:
    - Kiểm tra xem PostgreSQL Service đã bật chưa (vào `services.msc` trên Windows $\rightarrow$ kiểm tra service `postgresql-x64-xx` đang chạy).
@@ -240,30 +195,45 @@ SELECT * FROM "PriceItems";
 
 ---
 
-## 7. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
+## 8. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
 
 ```text
 QTKD/
-├── .gitignore
+├── .gitignore                          # Bỏ qua các file build (bin, obj), cache IDE và bảo mật chuỗi kết nối
 ├── README.md                           # Hướng dẫn cài đặt, khởi chạy, kiểm thử và cấu trúc solution
 ├── docs/                               # Chứa tài liệu thiết kế, sơ đồ kiến trúc, minh chứng kiểm thử
+│   ├── ARCHITECTURE.md                 # Tài liệu mô tả trách nhiệm từng thành phần kiến trúc
+│   ├── architecture.png                # Sơ đồ kiến trúc phân tầng 9 layer
+│   └── VIDEO_DEMO_SCRIPT_TUAN06.md     # Kịch bản quay video demo nghiệm thu Tuần 06
 ├── tests/                              # Thư mục chứa project kiểm thử xUnit (triển khai ở Tuần 07)
 │
 └── src/
     └── QTKD.Api/                       # Project ASP.NET Core Web API chính
         ├── Controllers/                # Tầng Controller tiếp nhận HTTP Request & trả HTTP Status Codes
-        │   ├── ContractController.cs   # API Hợp đồng (GET, PUT, Submit)
-        │   └── CustomerController.cs   # API Khách hàng (GET danh sách)
+        │   ├── ContractController.cs   # API Hợp đồng (GET, POST, PUT, POST submit US03)
+        │   ├── CustomerController.cs   # API Khách hàng (GET, POST, PUT)
+        │   └── PricingController.cs    # API Bảng giá & Dịch vụ (GET, POST)
+        │
+        ├── Services/                   # Tầng Nghiệp vụ (Business Logic Layer)
+        │   ├── ICustomerService.cs     & CustomerService.cs (Check mã trùng, kiểm tra hợp lệ)
+        │   ├── IContractService.cs     & ContractService.cs (Cài đặt CTR-01, CTR-02, CTR-03, chống gửi lặp)
+        │   └── IPricingService.cs      & PricingService.cs  (Check UnitPrice > 0, PriceList tồn tại)
+        │
+        ├── Repositories/               # Tầng trừu tượng hóa truy cập CSDL (Repository Pattern)
+        │   ├── ICustomerRepository.cs  & CustomerRepository.cs
+        │   ├── IContractRepository.cs  & ContractRepository.cs (kèm .Include(c => c.Customer))
+        │   └── IPriceListRepository.cs & PriceListRepository.cs (kèm .Include(p => p.PriceItems))
         │
         ├── Data/                       # Tầng truy xuất dữ liệu & ORM
         │   └── QTKDDbContext.cs        # DbContext cấu hình quan hệ 1-N và nạp Seed Data vào PostgreSQL
         │
         ├── DTOs/                       # Data Transfer Objects tách biệt thực thể DB với dữ liệu API
         │   ├── ContractDtos.cs         # Request & Response DTOs của Hợp đồng
-        │   └── CustomerDtos.cs         # Request & Response DTOs của Khách hàng
+        │   ├── CustomerDtos.cs         # Request & Response DTOs của Khách hàng
+        │   └── PricingDtos.cs          # Request & Response DTOs của Bảng giá & Dịch vụ
         │
         ├── Middleware/                 # Pipeline xử lý trung gian
-        │   └── GlobalExceptionMiddleware.cs  # Bắt ngoại lệ tập trung
+        │   └── GlobalExceptionMiddleware.cs  # Bắt ngoại lệ tập trung (400 lỗi nghiệp vụ, 404 NotFound)
         │
         ├── Migrations/                 # Lịch sử EF Core Code-First Migrations
         │   ├── 20261028092934_InitialCreate.cs
@@ -274,14 +244,9 @@ QTKD/
         │   ├── Customer.cs             # Thực thể Khách hàng
         │   ├── CustomerStatus.cs       # Enum trạng thái Khách hàng (Inactive = 0, Active = 1)
         │   ├── Contract.cs             # Thực thể Hợp đồng
-        │   ├── ContractStatus.cs       # Enum trạng thái Hợp đồng (Draft = 0, PendingApproval = 1, ...)
+        │   ├── ContractStatus.cs       # Enum trạng thái Hợp đồng (Draft, PendingApproval, RevisionRequested)
         │   ├── PriceList.cs            # Thực thể Bảng giá
         │   └── PriceItem.cs            # Thực thể Chi tiết đơn giá dịch vụ
-        │
-        ├── Repositories/               # Tầng trừu tượng hóa truy cập CSDL (Repository Pattern)
-        │   ├── ICustomerRepository.cs  & CustomerRepository.cs
-        │   ├── IContractRepository.cs  & ContractRepository.cs (kèm .Include(c => c.Customer))
-        │   └── IPriceListRepository.cs & PriceListRepository.cs
         │
         ├── Properties/
         │   └── launchSettings.json     # Cấu hình cổng chạy ứng dụng (HTTP 5174, HTTPS 7015)
