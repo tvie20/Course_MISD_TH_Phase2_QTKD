@@ -32,7 +32,24 @@
 
 ---
 
-## 3. YÊU CẦU MÔI TRƯỜNG TRƯỚC KHI CHẠY (PREREQUISITES)
+## 3. MỤC TIÊU TUẦN 07
+- Không xây dựng thêm hệ thống khác; sử dụng mã nguồn tuần 06 để viết bộ kiểm thử tự động toàn diện, phát hiện và khắc phục lỗi, chuẩn bị phiên bản chạy ổn định.
+- **Xây dựng Project Kiểm thử xUnit độc lập (`tests/QTKD.Tests`):**
+  - Tách biệt rõ ràng giữa **Unit Test** (kiểm thử nghiệp vụ logic không cần database) và **Integration Test** (kiểm thử tích hợp gọi qua HTTP pipeline với database kiểm thử).
+- **Kiểm thử Unit Test cho các quy tắc nghiệp vụ:**
+  - Viết unit test cho các quy tắc **CTR-01**, **CTR-02**, **CTR-03** bằng thư viện `Moq` để cô lập tầng Repository. Mỗi quy tắc có tối thiểu 01 ca kiểm thử thành công (đúng) và 01 ca kiểm thử từ chối (sai).
+- **Kiểm thử Integration Test cho API:**
+  - Viết integration test bằng `WebApplicationFactory<Program>` kết hợp `EF Core InMemory` trên database kiểm thử độc lập (không chạm database production `QTKDDb`).
+  - Kiểm tra toàn diện HTTP status code (`200`, `201`, `400`, `404`), cấu trúc nội dung JSON phản hồi và truy vấn lại dữ liệu thực tế sau khi thao tác.
+- **Đạt chỉ tiêu kiểm thử tối thiểu (TC01–TC08):**
+  - Đảm bảo 100% các ca kiểm thử từ **TC01 đến TC08** đều được tự động hóa và chạy `Passed` 26/26 ca kiểm thử.
+- **Ghi nhận và khắc phục lỗi:**
+  - Ghi nhận chi tiết lỗi phát hiện trong quá trình tích hợp (đặc biệt là lỗi thiếu khai báo `public partial class Program { }` trong `Program.cs` và xung đột phiên bản gói `Microsoft.EntityFrameworkCore.InMemory`).
+  - **Tình trạng lỗi còn tồn tại:** **0 lỗi** (Hệ thống không còn lỗi tồn đọng, tất cả ca kiểm thử tự động và thủ công đều đạt chuẩn).
+
+---
+
+## 4. YÊU CẦU MÔI TRƯỜNG TRƯỚC KHI CHẠY
 Trước khi bắt đầu, hãy đảm bảo máy tính đã cài đặt:
 1. **.NET SDK**: Phiên bản .NET 10.0 (hoặc .NET 8.0/9.0 tương thích).  
    *Kiểm tra:* `dotnet --version`
@@ -46,7 +63,7 @@ Trước khi bắt đầu, hãy đảm bảo máy tính đã cài đặt:
 
 ---
 
-## 4. CÁC BƯỚC CÀI ĐẶT VÀ KHỞI ĐỘNG DỰ ÁN
+## 5. CÁC BƯỚC CÀI ĐẶT VÀ KHỞI ĐỘNG DỰ ÁN
 
 ### Bước 1: Mở Terminal tại thư mục project
 Mở Terminal/PowerShell và điều hướng tới thư mục chứa project Web API:
@@ -123,26 +140,26 @@ Mở trình duyệt truy cập vào giao diện **Swagger UI**:
 
 ---
 
-## 5. HƯỚNG DẪN THỰC THI ENDPOINTS TRÊN GIAO DIỆN SWAGGER UI
+## 6. HƯỚNG DẪN THỰC THI ENDPOINTS TRÊN GIAO DIỆN SWAGGER UI
 
 Trên giao diện Swagger UI có 3 nhóm API hoàn chỉnh: **Customer**, **Contract** và **Pricing**.
 
 ---
 
-### 5.1. Nhóm Customer: Đọc danh sách (`GET /api/customers`)
+### 6.1. Nhóm Customer: Đọc danh sách (`GET /api/customers`)
 - Mở rộng endpoint **`GET /api/customers`** $\rightarrow$ Nhấp **`Try it out`** $\rightarrow$ Nhấp **`Execute`**.
 - Quan sát **Code: 200** và danh sách khách hàng JSON đọc trực tiếp từ PostgreSQL.
 
 ---
 
-### 5.2. Nhóm Contract: Xem chi tiết theo ID (`GET /api/contracts/{id}`)
+### 6.2. Nhóm Contract: Xem chi tiết theo ID (`GET /api/contracts/{id}`)
 - Mở rộng endpoint **`GET /api/contracts/{id}`** $\rightarrow$ Nhấp **`Try it out`**.
 - Nhập `id = 1` $\rightarrow$ Nhấp **`Execute`** $\rightarrow$ Nhận **Code: 200** với hợp đồng `HD-2026-018` ở trạng thái `Draft`.
 - Thử nhập `id = 999` $\rightarrow$ Nhấp **`Execute`** $\rightarrow$ Nhận **Code: 404 Not Found** ("Không tìm thấy hợp đồng với Id = 999.").
 
 ---
 
-### 5.3. Nhóm Contract: Gửi trình duyệt US03 (`POST /api/contracts/{id}/submit`)
+### 6.3. Nhóm Contract: Gửi trình duyệt US03 (`POST /api/contracts/{id}/submit`)
 - Mở rộng endpoint **`POST /api/contracts/{id}/submit`** $\rightarrow$ Nhấp **`Try it out`**.
 - Nhập `id = 1` $\rightarrow$ Nhấp **`Execute`**.
 - Hệ thống thẩm định quy tắc **CTR-02** và chuyển trạng thái sang **PendingApproval** (thỏa mãn quy tắc **CTR-03**).
@@ -150,13 +167,34 @@ Trên giao diện Swagger UI có 3 nhóm API hoàn chỉnh: **Customer**, **Cont
 
 ---
 
-### 5.4. Nhóm Pricing: Quản lý bảng giá & dịch vụ
+### 6.4. Nhóm Pricing: Quản lý bảng giá & dịch vụ
 - `GET /api/pricelists/{id}`: Xem chi tiết bảng giá kèm danh sách mặt hàng (`PriceItems`).
 - `POST /api/pricelists/{id}/items`: Thêm mặt hàng dịch vụ (kiểm tra chặn lỗi nếu đơn giá $\le 0$).
 
 ---
 
-## 6. ĐỐI CHIẾU DỮ LIỆU VỚI POSTGRESQL
+## 7. HƯỚNG DẪN CHẠY KIỂM THỬ TỰ ĐỘNG (XUNIT - TUẦN 07)
+
+Dự án cung cấp bộ kiểm thử tự động toàn diện tại `tests/QTKD.Tests` (100% tự động hóa, bao phủ đầy đủ TC01–TC08):
+
+### Chạy toàn bộ Test:
+```bash
+dotnet test tests/QTKD.Tests/QTKD.Tests.csproj --verbosity normal
+```
+
+### Chạy và xuất file kết quả minh chứng (TRX File):
+```bash
+dotnet test tests/QTKD.Tests/QTKD.Tests.csproj --logger "trx;LogFileName=TestResults_Tuan07.trx" --results-directory docs/test-results
+```
+
+**Kết quả kiểm thử thực tế:**
+- **Tổng số test:** 26 test cases (18 Unit Tests + 8 Integration Tests).
+- **Kết quả:** **26/26 PASSED (100%)**, 0 Failed, 0 Skipped.
+- **Minh chứng lưu tại:** [`docs/test-results/TestResults_Tuan07.trx`]
+
+---
+
+## 8. ĐỐI CHIẾU DỮ LIỆU VỚI POSTGRESQL
 
 Mở **pgAdmin** hoặc công cụ quản lý database, kết nối vào database `QTKDDb` và mở **Query Tool** để chạy các câu lệnh SQL đối chiếu với kết quả trả về trên Swagger:
 
@@ -176,7 +214,7 @@ SELECT * FROM "PriceItems";
 
 ---
 
-## 7. XỬ LÝ SỰ CỐ THƯỜNG GẶP (TROUBLESHOOTING)
+## 9. XỬ LÝ SỰ CỐ THƯỜNG GẶP (TROUBLESHOOTING)
 
 1. **Lỗi: `Failed to connect to 127.0.0.1:5432`**:
    - Kiểm tra xem PostgreSQL Service đã bật chưa (vào `services.msc` trên Windows $\rightarrow$ kiểm tra service `postgresql-x64-xx` đang chạy).
@@ -193,9 +231,12 @@ SELECT * FROM "PriceItems";
 3. **Lỗi: `PendingModelChangesWarning`**:
    - Trong EF Core 9/.NET 10, dự án đã được cấu hình tự động bỏ qua cảnh báo này và đồng bộ mô hình trong `QtkdDbContext.cs`, đảm bảo lệnh `dotnet ef database update` luôn chạy thành công.
 
+4. **Lỗi: Thiếu `public partial class Program { }` khi chạy Integration Tests**:
+   - Khi viết `WebApplicationFactory<Program>`, nếu `Program.cs` sử dụng top-level statements, class `Program` mặc định là `internal`. Cần khai báo `public partial class Program { }` ở cuối `Program.cs` để test project có thể truy cập được host entrypoint.
+
 ---
 
-## 8. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
+## 10. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
 
 ```text
 QTKD/
@@ -204,8 +245,20 @@ QTKD/
 ├── docs/                               # Chứa tài liệu thiết kế, sơ đồ kiến trúc, minh chứng kiểm thử
 │   ├── ARCHITECTURE.md                 # Tài liệu mô tả trách nhiệm từng thành phần kiến trúc
 │   ├── architecture.png                # Sơ đồ kiến trúc phân tầng 9 layer
-│   └── VIDEO_DEMO_SCRIPT_TUAN06.md     # Kịch bản quay video demo nghiệm thu Tuần 06
-├── tests/                              # Thư mục chứa project kiểm thử xUnit (triển khai ở Tuần 07)
+│   ├── THIET_KE.md              # Báo cáo thiết kế kiến trúc và phân tầng hệ thống
+│   ├── API.md                   # Báo cáo danh mục & đặc tả các endpoint API
+│   ├── MINH_CHUNG_TUAN07.md     # Báo cáo minh chứng kiểm thử tuần 07 (TC01-TC08, lỗi & khắc phục)
+│   ├── test-results/                   # Thư mục lưu kết quả kiểm thử tự động
+│   │   └── TestResults_Tuan07.trx      # File kết quả kiểm thử chuẩn TRX
+├── tests/                              # Thư mục chứa project kiểm thử xUnit (Tuần 07)
+│   └── QTKD.Tests/
+│       ├── QTKD.Tests.csproj           # Cấu hình project test xUnit, Moq, InMemory, Mvc.Testing
+│       ├── UnitTests/                  # Tầng Unit Test (cô lập, dùng Moq)
+│       │   ├── ContractServiceTests.cs # Kiểm thử CTR-01, CTR-02, CTR-03, TC03-TC08
+│       │   └── CustomerServiceTests.cs # Kiểm thử tính hợp lệ và chống trùng mã Customer (TC01, TC02)
+│       └── IntegrationTests/           # Tầng Integration Test (gọi HTTP qua WebApplicationFactory)
+│           ├── CustomWebApplicationFactory.cs # Cấu hình Test Server & InMemory Database
+│           └── ContractApiTests.cs     # Kiểm thử tích hợp toàn bộ pipeline API (TC01-TC08)
 │
 └── src/
     └── QTKD.Api/                       # Project ASP.NET Core Web API chính
